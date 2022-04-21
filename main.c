@@ -3,138 +3,21 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include "menu.h"
+
 #define FONT_SIZE	12
 #define FONT_NAME	"/home/mk/.local/share/fonts/VictorMono-Bold.ttf"
-#define FONT_COLOR	0xFFFCF9
-#define SHADOW_COLOR	0x000000
-
-#define BAR_H 14
-#define BAR_BORDER 2
-
-#define TOTAL_ENTRIES 11
-#define ELEMENTS_PADDING 3
-
-#define NORM_COLOR 0x010101FF
-#define SEL_COLOR 0xCC0000FF
 
 #define WIN_DEFAULT_W	800
 #define WIN_DEFAULT_H	600
 
-#define UNHEX(color) \
-    ((color) >> (8 * 3)) & 0xFF, \
-    ((color) >> (8 * 2)) & 0xFF, \
-    ((color) >> (8 * 1)) & 0xFF, \
-    ((color) >> (8 * 0)) & 0xFF
-
-typedef struct Entry {
-	char *text;
-	bool selected;
-	size_t index;
-} Entry;
-
-void select_next(Entry entries[]) {
-	for(int i = 0; i < TOTAL_ENTRIES; i++) {
-		if(entries[i].selected == true) {
-			entries[i].selected = false;
-			if((i + 1) < TOTAL_ENTRIES)
-				entries[i + 1].selected = true;
-			else
-				entries[0].selected = true;
-
-			return;
-		}
-	}
-}
-
-void select_prev(Entry entries[]) {
-	for(int i = 0; i < TOTAL_ENTRIES; i++) {
-		if(entries[i].selected == true) {
-			entries[i].selected = false;
-			if(i == 0) entries[TOTAL_ENTRIES - 1].selected = true;
-			else entries[i - 1].selected = true;
-
-			return;
-		}
-	}
-}
-
 int win_w, win_h;
-int text_w, text_h;
 TTF_Font *font;
-
-void draw_entry(SDL_Renderer *rend, Entry entry) {
-	SDL_Surface *text_surface;
-	SDL_Texture *text_texture;
-	SDL_Rect text_rect, text_container;
-	SDL_Color text_color, text_color_shadow;
-
-	text_color_shadow.r = (char)(SHADOW_COLOR >> 16) & 0xFF;
-	text_color_shadow.g = (char)(SHADOW_COLOR >> 8) & 0xFF;
-	text_color_shadow.b = (char)(SHADOW_COLOR) & 0xFF;
-
-	text_color.r = (char)(FONT_COLOR >> 16) & 0xFF;
-	text_color.g = (char)(FONT_COLOR >> 8) & 0xFF;
-	text_color.b = (char)(FONT_COLOR) & 0xFF;
-
-	text_container.x = BAR_BORDER;
-
-	text_container.y = (win_h / 2) - (((BAR_H * TOTAL_ENTRIES) + (ELEMENTS_PADDING * (TOTAL_ENTRIES - 1))) / 2) + BAR_H + (entry.index * (ELEMENTS_PADDING + BAR_H));
-
-	text_container.w = win_w - (BAR_BORDER * 2);
-	text_container.h = -BAR_H;
-
-	if(entry.selected)
-		SDL_SetRenderDrawColor(rend, UNHEX(SEL_COLOR)); /* RGBA */
-	else
-		SDL_SetRenderDrawColor(rend, UNHEX(NORM_COLOR)); /* RGBA */
-
-	SDL_RenderFillRect(rend, &text_container);
-
-	if(entry.selected) {
-		text_surface = TTF_RenderText_Blended(font, entry.text, text_color_shadow);
-		text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
-
-		TTF_SizeText(font, entry.text, &text_w, &text_h);
-
-		text_rect.x = (win_w / 2) - (text_w / 2) + 1;
-		text_rect.y = (win_h / 2) - (((BAR_H * TOTAL_ENTRIES) + (ELEMENTS_PADDING * (TOTAL_ENTRIES - 1))) / 2) + BAR_H + (entry.index * (ELEMENTS_PADDING + BAR_H)) - (BAR_H + 1) + 1;
-		text_rect.w = text_surface->w;
-		text_rect.h = text_surface->h;
-
-		SDL_RenderCopy(rend, text_texture, NULL, &text_rect);
-		SDL_DestroyTexture(text_texture);
-		SDL_FreeSurface(text_surface);
-
-		text_surface = TTF_RenderText_Blended(font, entry.text, text_color);
-		text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
-
-		TTF_SizeText(font, entry.text, &text_w, &text_h);
-
-		text_rect.x = (win_w / 2) - (text_w / 2);
-		text_rect.y = (win_h / 2) - (((BAR_H * TOTAL_ENTRIES) + (ELEMENTS_PADDING * (TOTAL_ENTRIES - 1))) / 2) + BAR_H + (entry.index * (ELEMENTS_PADDING + BAR_H)) - (BAR_H + 1);
-		text_rect.w = text_surface->w;
-		text_rect.h = text_surface->h;
-	}
-	else {
-		text_surface = TTF_RenderText_Blended(font, entry.text, text_color);
-		text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
-
-		TTF_SizeText(font, entry.text, &text_w, &text_h);
-
-		text_rect.x = (win_w / 2) - (text_w / 2);
-		text_rect.y = (win_h / 2) - (((BAR_H * TOTAL_ENTRIES) + (ELEMENTS_PADDING * (TOTAL_ENTRIES - 1))) / 2) + BAR_H + (entry.index * (ELEMENTS_PADDING + BAR_H)) - (BAR_H + 1);
-		text_rect.w = text_surface->w;
-		text_rect.h = text_surface->h;
-	}
-	SDL_RenderCopy(rend, text_texture, NULL, &text_rect);
-	SDL_DestroyTexture(text_texture);
-	SDL_FreeSurface(text_surface);
-}
-
 
 int main (void) {
 	SDL_Window *win;
 	SDL_Renderer *rend;
+	size_t i;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -161,7 +44,7 @@ int main (void) {
 
 	Entry entries[TOTAL_ENTRIES] = {0};
 
-	for(int i = 0; i < TOTAL_ENTRIES; i++) {
+	for(i = 0; i < TOTAL_ENTRIES; i++) {
 		entries[i].selected = false;
 		entries[i].index = i;
 	}
@@ -169,14 +52,22 @@ int main (void) {
 	entries[0].text = "Bubble sort";
 	entries[1].text = "Bubble sort (improved)";
 	entries[2].text = "Insertion sort";
-	entries[3].text = "Merge sort";
-	entries[4].text = "Quick sort";
-	entries[5].text = "Quick sort (dual pivots)";
-	entries[6].text = "Quick sort (LR pointers)";
-	entries[7].text = "Quick sort (LL pointers)";
-	entries[8].text = "Shell sort";
-	entries[9].text = "Radix sort";
-	entries[10].text = "Heap sort";
+	entries[3].text = "Binary insertion sort";
+	entries[4].text = "Merge sort";
+	entries[5].text = "Quick sort";
+	entries[6].text = "Quick sort (dual pivots)";
+	entries[7].text = "Quick sort (LR pointers)";
+	entries[8].text = "Quick sort (LL pointers)";
+	entries[9].text = "Shell sort";
+	entries[10].text = "Radix sort";
+	entries[11].text = "Heap sort";
+	entries[12].text = "Cocktail shaker sort";
+	entries[13].text = "Gnome sort";
+	entries[14].text = "Odd-even sort";
+	entries[15].text = "Tim sort";
+	entries[16].text = "Bogo sort";
+	entries[17].text = "Stooge sort";
+	entries[18].text = "Spaghetti sort";
 
 	entries[0].selected = true;
 	SDL_Keymod mod;
@@ -189,26 +80,22 @@ int main (void) {
 				default: break;
 			case SDL_KEYDOWN:
 				/* printf("SDL_GetModState() == %X\n", SDL_GetModState()); */
+				mod = SDL_GetModState();
 				switch(event.key.keysym.scancode) {
-				case SDL_SCANCODE_J:
-				case SDL_SCANCODE_DOWN:
-					select_next(entries);
-					break;
-				case SDL_SCANCODE_K:
-				case SDL_SCANCODE_UP:
-					select_prev(entries);
-					break;
-				case SDL_SCANCODE_TAB:
-					mod = SDL_GetModState();
-					if((mod == KMOD_LSHIFT) || (mod == KMOD_RSHIFT)) {
-						select_prev(entries);
+					case SDL_SCANCODE_J:
+					case SDL_SCANCODE_DOWN:
+						if(mod == KMOD_NONE) select_next(entries);
 						break;
-					} else
-						select_next(entries);
-					break;
-				case SDL_SCANCODE_RETURN:
-					break;
-				default: break;
+					case SDL_SCANCODE_K:
+					case SDL_SCANCODE_UP:
+						if(mod == KMOD_NONE) select_prev(entries);
+						break;
+					case SDL_SCANCODE_RETURN:
+						for(i = 0; i < TOTAL_ENTRIES; i++)
+							if(entries[i].selected)
+								printf("%s\n", entries[i].text);
+						break;
+					default: break;
 				}
 				break;
 			case SDL_WINDOWEVENT:
@@ -226,8 +113,8 @@ int main (void) {
 		SDL_SetRenderDrawColor(rend, 32, 32, 32, 0);
 		SDL_RenderClear(rend);
 
-		for(int i = 0; i < TOTAL_ENTRIES; i++)
-			draw_entry(rend, entries[i]);
+		for(i = 0; i < TOTAL_ENTRIES; i++)
+			draw_entry(rend, font, win_w, win_h, entries[i]);
 
 		SDL_RenderPresent(rend);
 		SDL_Delay(1);
