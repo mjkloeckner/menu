@@ -6,13 +6,37 @@
 #include "menu.h"
 
 #define FONT_SIZE	12
-#define FONT_NAME	"/home/mk/.local/share/fonts/VictorMono-Bold.ttf"
+#define FONT_NAME	"./VictorMono-Bold.ttf"
 
 #define WIN_DEFAULT_W	800
 #define WIN_DEFAULT_H	600
 
+static char *entries_text[TOTAL_ENTRIES] = {
+	"Bubble sort",
+	"Bubble sort (improved)",
+	"Insertion sort",
+	"Binary insertion sort",
+	"Merge sort",
+	"Quick sort",
+	"Quick sort (dual pivots)",
+	"Quick sort (LR pointers)",
+	"Quick sort (LL pointers)",
+	"Shell sort",
+	"Radix sort",
+	"Heap sort",
+	"Cocktail shaker sort",
+	"Gnome sort",
+	"Odd-even sort",
+	"Tim sort",
+	"Bogo sort",
+	"Stooge sort",
+	"Spaghetti sort"
+};
+
 int win_w, win_h;
 TTF_Font *font;
+int x, y;
+Uint32 buttons;
 
 int main (void) {
 	SDL_Window *win;
@@ -42,35 +66,29 @@ int main (void) {
 	win_w = WIN_DEFAULT_W;
 	win_h = WIN_DEFAULT_H;
 
-	Entry entries[TOTAL_ENTRIES] = {0};
+	Entry entries[TOTAL_ENTRIES];
 
 	for(i = 0; i < TOTAL_ENTRIES; i++) {
-		entries[i].selected = false;
-		entries[i].index = i;
+		entries[i] = (Entry) {
+			.text = entries_text[i],
+			.selected = false,
+			.hover = false,
+			.index = i,
+		};
 	}
 
-	entries[0].text = "Bubble sort";
-	entries[1].text = "Bubble sort (improved)";
-	entries[2].text = "Insertion sort";
-	entries[3].text = "Binary insertion sort";
-	entries[4].text = "Merge sort";
-	entries[5].text = "Quick sort";
-	entries[6].text = "Quick sort (dual pivots)";
-	entries[7].text = "Quick sort (LR pointers)";
-	entries[8].text = "Quick sort (LL pointers)";
-	entries[9].text = "Shell sort";
-	entries[10].text = "Radix sort";
-	entries[11].text = "Heap sort";
-	entries[12].text = "Cocktail shaker sort";
-	entries[13].text = "Gnome sort";
-	entries[14].text = "Odd-even sort";
-	entries[15].text = "Tim sort";
-	entries[16].text = "Bogo sort";
-	entries[17].text = "Stooge sort";
-	entries[18].text = "Spaghetti sort";
+	/* size_t len, len_max; */
+	/* for(i = len = len_max = 0; i < TOTAL_ENTRIES; i++, len = strlen(entries_text[i])) */
+	/* 	len_max = (len > len_max) ? len : len_max; */
+
+	/* for(i = 0; i < TOTAL_ENTRIES; i++) { */
+	/* 	entries[i].selected = false; */
+	/* 	strcpy(entries.text, entries_text[i]); */
+	/* } */
 
 	entries[0].selected = true;
 	SDL_Keymod mod;
+	size_t index = TOTAL_ENTRIES;
 	while(run) {
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
@@ -82,6 +100,9 @@ int main (void) {
 				/* printf("SDL_GetModState() == %X\n", SDL_GetModState()); */
 				mod = SDL_GetModState();
 				switch(event.key.keysym.scancode) {
+					case SDL_SCANCODE_Q:
+						run = false;
+						break;
 					case SDL_SCANCODE_J:
 					case SDL_SCANCODE_DOWN:
 						if(mod == KMOD_NONE) select_next(entries);
@@ -98,6 +119,13 @@ int main (void) {
 					default: break;
 				}
 				break;
+			case SDL_MOUSEBUTTONDOWN:
+				index = entry_at(entries, event.button.x, event.button.y);
+				if(index != TOTAL_ENTRIES) {
+					printf("%s\n", entries[index].text);
+					select_index(entries, index);
+				}
+				break;
 			case SDL_WINDOWEVENT:
 				switch(event.window.event) {
 				case SDL_WINDOWEVENT_RESIZED:
@@ -110,11 +138,18 @@ int main (void) {
 			}
 		}
 
+		SDL_PumpEvents();  // make sure we have the latest mouse state.
+
+		buttons = SDL_GetMouseState(&x, &y);
+		hover_at(entries, x, y);
+
 		SDL_SetRenderDrawColor(rend, 32, 32, 32, 0);
 		SDL_RenderClear(rend);
 
-		for(i = 0; i < TOTAL_ENTRIES; i++)
+		compute_entries_pos(entries, win_w, win_h);
+		for(i = 0; i < TOTAL_ENTRIES; i++) {
 			draw_entry(rend, font, win_w, win_h, entries[i]);
+		}
 
 		SDL_RenderPresent(rend);
 		SDL_Delay(1);

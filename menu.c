@@ -1,41 +1,95 @@
 #include "menu.h"
 
+/* void Entry_new(Entry *entry, Entry values) { */
+/* 	if(!(entry = (Entry)malloc(sizeof(struct _Entry)))) return; */
+
+/* 	strcpy(entry->text, values.text); */
+/* 	entry->selected = values.selected; */
+/* } */
+
 /* Finds the selected entry then selects next */
-void select_next(Entry entries[]) {
+void select_next(Entry *entries) {
 	for(int i = 0; i < TOTAL_ENTRIES; i++) {
 		if(entries[i].selected == true) {
 			entries[i].selected = false;
-			if((i + 1) < TOTAL_ENTRIES) entries[i + 1].selected = true;
-			else entries[0].selected = true;
-			return;
+			if((i + 1) == TOTAL_ENTRIES) entries[0].selected = true;
+			else entries[i + 1].selected = true;
+			i++;
+			continue;
 		}
+		entries[i].selected = false;
 	}
 }
 
 /* Finds the selected entry then selects previous */
-void select_prev(Entry entries[]) {
+void select_prev(Entry *entries) {
 	for(int i = 0; i < TOTAL_ENTRIES; i++) {
 		if(entries[i].selected == true) {
 			entries[i].selected = false;
-			if(i == 0) entries[TOTAL_ENTRIES - 1].selected = true;
+			if(i == 0) {
+				entries[TOTAL_ENTRIES - 1].selected = true;
+				break;
+			}
 			else entries[i - 1].selected = true;
-			return;
 		}
 	}
 }
 
-void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, Entry entry) {
+void select_index(Entry *entries, size_t index) {
+	size_t i;
+	for(i = 0; i < TOTAL_ENTRIES; i++) {
+		if(entries[i].index == index) entries[i].selected = true;
+		else if(entries[i].selected == true) entries[i].selected = false;
+	}
+}
+
+size_t entry_at(Entry *entries, int x, int y) {
+	size_t i;
+
+	for(i = 0; i < TOTAL_ENTRIES; i++)
+		if((y < entries[i].pos.y) && (y > (entries[i].pos.y - BAR_H)))
+			return i;
+
+	return TOTAL_ENTRIES;
+}
+
+void compute_entries_pos(Entry *entries, int win_w, int win_h) {
+	int first_entry_pos_y, win_center_y;
+	size_t i;
+
+	win_center_y = (win_h / 2);
+	first_entry_pos_y = win_center_y -
+		((((BAR_H + ELEMENTS_PADDING) * TOTAL_ENTRIES) - ELEMENTS_PADDING) / 2) + BAR_H;
+
+	for(i = 0; i < TOTAL_ENTRIES; i++) {
+		entries[i].pos.x = BAR_BORDER;
+		entries[i].pos.y = (first_entry_pos_y + (entries[i].index * (ELEMENTS_PADDING + BAR_H)));
+	}
+}
+
+void hover_entry(Entry *entries, size_t index) {
+	size_t i;
+
+	for(i = 0; i < TOTAL_ENTRIES; i++)
+		entries[i].hover = ((i == index) ? true : false);
+}
+
+void hover_at(Entry *entries, int x, int y) {
+	size_t i;
+
+	for(i = 0; i < TOTAL_ENTRIES; i++) {
+		if((y < entries[i].pos.y) && (y > (entries[i].pos.y - BAR_H)))
+			entries[i].hover = true;
+		else entries[i].hover = false;
+	}
+}
+
+void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, const Entry entry) {
 	SDL_Surface *text_surface;
 	SDL_Texture *text_texture;
 	SDL_Rect text_rect, box;
 	SDL_Color text_color, text_color_shadow;
-	int first_entry_y_pos, win_center_y;
 	int text_w, text_h;
-
-	win_center_y = (win_h / 2);
-	first_entry_y_pos = win_center_y -
-		((((BAR_H + ELEMENTS_PADDING) * TOTAL_ENTRIES) - ELEMENTS_PADDING) / 2) +
-		BAR_H + (entry.index * (ELEMENTS_PADDING + BAR_H));
 
 	text_color_shadow.r = (char)(SHADOW_COLOR >> 16) & 0xFF;
 	text_color_shadow.g = (char)(SHADOW_COLOR >> 8) & 0xFF;
@@ -46,13 +100,13 @@ void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, Entry 
 	text_color.b = (char)(FONT_COLOR) & 0xFF;
 
 	box.x = BAR_BORDER;
-	box.y = first_entry_y_pos;
+	box.y = entry.pos.y;
 	box.w = win_w - (BAR_BORDER * 2);
 	box.h = -BAR_H;
 
-	SDL_SetRenderDrawColor(rend, UNHEX(entry.selected ? SEL_COLOR : NORM_COLOR));
-
+	SDL_SetRenderDrawColor(rend, UNHEX(entry.selected ? SEL_COLOR : entry.hover ? HOVER_COLOR : NORM_COLOR));
 	SDL_RenderFillRect(rend, &box);
+
 	TTF_SizeText(font, entry.text, &text_w, &text_h);
 
 	/* Draw shadow */
@@ -61,7 +115,7 @@ void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, Entry 
 		text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
 
 		text_rect.x = (win_w / 2) - (text_w / 2) + 2;
-		text_rect.y = first_entry_y_pos - (BAR_H + 1) + 2;
+		text_rect.y = entry.pos.y - (BAR_H + 1) + 2;
 		text_rect.w = text_surface->w;
 		text_rect.h = text_surface->h;
 
@@ -74,7 +128,7 @@ void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, Entry 
 	text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
 
 	text_rect.x = (win_w / 2) - (text_w / 2);
-	text_rect.y = first_entry_y_pos - (BAR_H + 1);
+	text_rect.y = entry.pos.y - (BAR_H + 1);
 	text_rect.w = text_surface->w;
 	text_rect.h = text_surface->h;
 
@@ -82,4 +136,3 @@ void draw_entry(SDL_Renderer *rend, TTF_Font *font, int win_w, int win_h, Entry 
 	SDL_DestroyTexture(text_texture);
 	SDL_FreeSurface(text_surface);
 }
-
