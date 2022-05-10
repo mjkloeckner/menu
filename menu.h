@@ -9,8 +9,8 @@
 
 #include "util.h"
 
-#define FONT_COLOR		0xFFFCF9
-#define SHADOW_COLOR	0x000000
+#define FONT_COLOR		0xFFFCF9FF
+#define SHADOW_COLOR	0x000000FF
 
 #define BAR_H 14
 #define BAR_BORDER 2

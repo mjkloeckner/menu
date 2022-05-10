@@ -11,6 +11,8 @@
 #define WIN_DEFAULT_W	800
 #define WIN_DEFAULT_H	600
 
+#define BG_COLOR	0x323232FF
+
 static char *entries_text[TOTAL_ENTRIES] = {
 	"Bubble sort",
 	"Bubble sort (improved)",
@@ -41,6 +43,7 @@ Uint32 buttons;
 int main (void) {
 	SDL_Window *win;
 	SDL_Renderer *rend;
+	int min_w, min_h;
 	size_t i;
 
 	SDL_Init(SDL_INIT_VIDEO);
@@ -61,6 +64,10 @@ int main (void) {
 
 	font = TTF_OpenFont(FONT_NAME, FONT_SIZE);
 
+	min_h = (TOTAL_ENTRIES * (BAR_H + ELEMENTS_PADDING)) + ELEMENTS_PADDING;
+	min_w = (((float)min_h * 4) / 3);
+	SDL_SetWindowMinimumSize(win, min_w, min_h);
+
 	bool run = true;
 	SDL_Event event;
 	win_w = WIN_DEFAULT_W;
@@ -76,15 +83,6 @@ int main (void) {
 			.index = i,
 		};
 	}
-
-	/* size_t len, len_max; */
-	/* for(i = len = len_max = 0; i < TOTAL_ENTRIES; i++, len = strlen(entries_text[i])) */
-	/* 	len_max = (len > len_max) ? len : len_max; */
-
-	/* for(i = 0; i < TOTAL_ENTRIES; i++) { */
-	/* 	entries[i].selected = false; */
-	/* 	strcpy(entries.text, entries_text[i]); */
-	/* } */
 
 	entries[0].selected = true;
 	SDL_Keymod mod;
@@ -143,7 +141,7 @@ int main (void) {
 		buttons = SDL_GetMouseState(&x, &y);
 		hover_at(entries, x, y);
 
-		SDL_SetRenderDrawColor(rend, 32, 32, 32, 0);
+		SDL_SetRenderDrawColor(rend, UNHEX(BG_COLOR));
 		SDL_RenderClear(rend);
 
 		compute_entries_pos(entries, win_w, win_h);
