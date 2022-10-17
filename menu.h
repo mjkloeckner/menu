@@ -3,9 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-
 #include <stdbool.h>
-#include <stdlib.h>
 
 #include "util.h"
 
@@ -31,23 +29,37 @@
     ((color) >> (8 * 1)) & 0xFF, \
     ((color) >> (8 * 0)) & 0xFF
 
-typedef struct Entry {
+typedef struct {
 	char *text;
 	bool selected, hover;
 	size_t index;
 	Coord pos;
-} Entry;
+} Elem;
 
-void select_prev(Entry *);
-void select_next(Entry *);
-void select_index(Entry *, size_t i);
-void draw_entry(SDL_Renderer *, TTF_Font *, int, int, const Entry);
+typedef struct {
+	Elem **elements;
+	size_t size;
+} Set;
 
-void Entry_new(Entry *);
-size_t entry_at(Entry *, int, int);
-void hover_at(Entry *, int, int);
-void hover_entry(Entry *, size_t);
-void compute_entries_pos(Entry *, int, int);
+void Set_new(Set **, size_t size);
+void Set_draw(Set *);
+void Set_destroy(Set *);
+
+void Set_select_prev(Set *);
+void Set_select_next(Set *);
+void Set_select_index(Set *, size_t i);
+void Set_hover_at(Set *, int, int);
+void Set_hover_elem(Set *, size_t);
+size_t Set_elem_at(Set *, int, int);
+void Set_compute_pos(Set *, int, int);
+
+
+/* void Elem_new(Elem **); */
+/* void Elem_destroy(Elem *); */
+
+void Elem_draw(SDL_Renderer *, TTF_Font *, int, int, const Elem *);
+void Elem_set_text(Elem *, const char *);
+
 
 
 #endif

@@ -13,7 +13,7 @@
 
 #define BG_COLOR	0x323232FF
 
-static char *entries_text[TOTAL_ENTRIES] = {
+static char *elements_text[TOTAL_ENTRIES] = {
 	"Bubble sort",
 	"Bubble sort (improved)",
 	"Insertion sort",
@@ -40,11 +40,17 @@ TTF_Font *font;
 int x, y;
 Uint32 buttons;
 
-int main (void) {
+/* TODO: remove global variables */
+/* TODO: custom box size, margin, padding, pos, etc */
+/* TODO: linked list (?) */
+
+int main (void)
+{
 	SDL_Window *win;
 	SDL_Renderer *rend;
 	int min_w, min_h;
 	size_t i;
+	Set *set;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -73,18 +79,11 @@ int main (void) {
 	win_w = WIN_DEFAULT_W;
 	win_h = WIN_DEFAULT_H;
 
-	Entry entries[TOTAL_ENTRIES];
+	Set_new(&set, TOTAL_ENTRIES);
 
-	for(i = 0; i < TOTAL_ENTRIES; i++) {
-		entries[i] = (Entry) {
-			.text = entries_text[i],
-			.selected = false,
-			.hover = false,
-			.index = i,
-		};
-	}
+	for(i = 0; i < set->size; i++)
+		Elem_set_text(set->elements[i], elements_text[i]);
 
-	entries[0].selected = true;
 	SDL_Keymod mod;
 	size_t index = TOTAL_ENTRIES;
 	while(run) {
@@ -103,30 +102,31 @@ int main (void) {
 						break;
 					case SDL_SCANCODE_J:
 					case SDL_SCANCODE_DOWN:
-						if(mod == KMOD_NONE) select_next(entries);
+						if(mod == KMOD_NONE) Set_select_next(set);
 						break;
 					case SDL_SCANCODE_K:
 					case SDL_SCANCODE_UP:
-						if(mod == KMOD_NONE) select_prev(entries);
+						if(mod == KMOD_NONE) Set_select_prev(set);
 						break;
 					case SDL_SCANCODE_RETURN:
 						for(i = 0; i < TOTAL_ENTRIES; i++)
-							if(entries[i].selected)
-								printf("%s\n", entries[i].text);
+							if(set->elements[i]->selected)
+								printf("%s\n", set->elements[i]->text);
 						break;
 					default: break;
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
-				index = entry_at(entries, event.button.x, event.button.y);
+				index = Set_elem_at(set, event.button.x, event.button.y);
 				if(index != TOTAL_ENTRIES) {
-					printf("%s\n", entries[index].text);
-					select_index(entries, index);
+					printf("%s\n", set->elements[index]->text);
+					Set_select_index(set, index);
 				}
 				break;
 			case SDL_WINDOWEVENT:
 				switch(event.window.event) {
 				case SDL_WINDOWEVENT_RESIZED:
+					/* printf("INFO: window resized to: %dx%d\n", win_w, win_h); */
 					win_w = event.window.data1;
 					win_h = event.window.data2;
 					break;
@@ -136,18 +136,17 @@ int main (void) {
 			}
 		}
 
-		SDL_PumpEvents();  // make sure we have the latest mouse state.
+		SDL_PumpEvents();  /* make sure we have the latest mouse state. */
 
 		buttons = SDL_GetMouseState(&x, &y);
-		hover_at(entries, x, y);
+		Set_hover_at(set, x, y);
 
 		SDL_SetRenderDrawColor(rend, UNHEX(BG_COLOR));
 		SDL_RenderClear(rend);
 
-		compute_entries_pos(entries, win_w, win_h);
-		for(i = 0; i < TOTAL_ENTRIES; i++) {
-			draw_entry(rend, font, win_w, win_h, entries[i]);
-		}
+		Set_compute_pos(set, win_w, win_h);
+		for(i = 0; i < TOTAL_ENTRIES; i++)
+			Elem_draw(rend, font, win_w, win_h, set->elements[i]);
 
 		SDL_RenderPresent(rend);
 		SDL_Delay(1);
